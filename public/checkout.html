@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>WaterPro Checkout</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f7fa;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+    .header {
+      background: linear-gradient(135deg, #0f3460, #1a5276);
+      color: white;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .header .user-badge {
+      background: rgba(255,255,255,0.2);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+    }
+
+    /* ── PIN Screen ── */
+    #pin-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 80vh;
+      padding: 20px;
+    }
+    #pin-screen h2 { font-size: 22px; margin-bottom: 8px; }
+    #pin-screen p { color: #666; margin-bottom: 24px; font-size: 14px; }
+    .pin-input {
+      font-size: 32px;
+      text-align: center;
+      width: 200px;
+      padding: 12px;
+      border: 2px solid #d0d5dd;
+      border-radius: 12px;
+      letter-spacing: 12px;
+      -webkit-text-security: disc;
+      margin-bottom: 16px;
+    }
+    .pin-input:focus { outline: none; border-color: #0f3460; }
+    .pin-error { color: #e74c3c; font-size: 14px; display: none; }
+
+    /* ── Checkout Screen ── */
+    #checkout-screen { display: none; padding: 16px; max-width: 500px; margin: 0 auto; }
+
+    .item-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .item-card .item-name { font-size: 20px; font-weight: 700; color: #0f3460; }
+    .item-card .item-sku { color: #888; font-size: 13px; margin-top: 2px; }
+    .item-card .item-meta {
+      display: flex;
+      gap: 16px;
+      margin-top: 10px;
+      font-size: 14px;
+      color: #555;
+    }
+    .item-card .item-meta span { display: flex; align-items: center; gap: 4px; }
+    .item-card .stock-warning { color: #e67e22; font-weight: 600; }
+    .item-card .stock-ok { color: #27ae60; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 6px;
+      color: #333;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid #d0d5dd;
+      border-radius: 10px;
+      font-size: 16px;
+      font-family: inherit;
+      background: white;
+      -webkit-appearance: none;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: #0f3460;
+    }
+    .form-group .hint { color: #888; font-size: 12px; margin-top: 4px; }
+
+    .qty-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .qty-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid #d0d5dd;
+      background: white;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0f3460;
+      flex-shrink: 0;
+    }
+    .qty-btn:active { background: #f0f4f8; }
+    .qty-input {
+      flex: 1;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .cost-preview {
+      background: #f0f4f8;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+    }
+    .cost-preview .total {
+      font-size: 22px;
+      font-weight: 700;
+      color: #0f3460;
+    }
+
+    .btn-checkout {
+      width: 100%;
+      padding: 16px;
+      background: #27ae60;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-checkout:active { background: #219a52; }
+    .btn-checkout:disabled { background: #95a5a6; cursor: not-allowed; }
+
+    /* ── Success Screen ── */
+    #success-screen {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .success-check {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: #27ae60;
+      color: white;
+      font-size: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+    #success-screen h2 { font-size: 24px; margin-bottom: 8px; }
+    #success-screen .details { color: #555; font-size: 14px; margin-bottom: 24px; line-height: 1.6; }
+    .btn-new {
+      padding: 14px 32px;
+      background: #0f3460;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 4px;
+    }
+    .btn-new:active { background: #1a5276; }
+
+    /* ── No-item / loading ── */
+    .loading { text-align: center; padding: 40px; color: #888; }
+    .error-msg {
+      background: #fef0f0;
+      color: #e74c3c;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: none;
+    }
+
+    /* ── Recent checkouts ── */
+    .recent-section { margin-top: 24px; }
+    .recent-section h3 { font-size: 16px; margin-bottom: 10px; color: #333; }
+    .recent-item {
+      background: white;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 6px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .recent-item .ri-left { color: #555; }
+    .recent-item .ri-right { font-weight: 600; color: #0f3460; }
+
+    /* ── Job search ── */
+    .job-list {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #d0d5dd;
+      border-radius: 8px;
+      display: none;
+      margin-top: 4px;
+    }
+    .job-list.active { display: block; }
+    .job-option {
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .job-option:last-child { border-bottom: none; }
+    .job-option:active { background: #f0f4f8; }
+    .job-option .jo-name { font-weight: 600; }
+    .job-option .jo-addr { color: #888; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>WaterPro Checkout</h1>
+  <span class="user-badge" id="user-badge" style="display:none;"></span>
+</div>
+
+<!-- PIN Entry -->
+<div id="pin-screen">
+  <h2>Enter PIN</h2>
+  <p>Your 4-digit employee PIN</p>
+  <input type="tel" class="pin-input" id="pin-input" maxlength="4" inputmode="numeric" autofocus>
+  <div class="pin-error" id="pin-error">Invalid PIN. Try again.</div>
+</div>
+
+<!-- Checkout Form -->
+<div id="checkout-screen">
+  <div class="error-msg" id="checkout-error"></div>
+
+  <div class="item-card" id="item-card" style="display:none;">
+    <div class="item-name" id="item-name"></div>
+    <div class="item-sku" id="item-sku-display"></div>
+    <div class="item-meta">
+      <span id="item-cost"></span>
+      <span id="item-stock"></span>
+      <span id="item-location"></span>
+    </div>
+  </div>
+
+  <!-- Item picker (when no QR param) -->
+  <div class="form-group" id="item-picker-group">
+    <label>Select Item</label>
+    <select id="item-picker">
+      <option value="">Choose item...</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Quantity</label>
+    <div class="qty-row">
+      <button class="qty-btn" onclick="adjustQty(-1)">-</button>
+      <input type="number" class="qty-input" id="qty-input" value="1" min="0.5" step="0.5">
+      <button class="qty-btn" onclick="adjustQty(1)">+</button>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Job #</label>
+    <input type="text" id="job-input" placeholder="Type job # or search..." inputmode="numeric" autocomplete="off">
+    <div class="job-list" id="job-list"></div>
+    <div class="hint">Albi project ID or search by name</div>
+  </div>
+
+  <div class="cost-preview">
+    <span>Estimated cost:</span>
+    <span class="total" id="cost-total">$0.00</span>
+  </div>
+
+  <button class="btn-checkout" id="btn-checkout" onclick="doCheckout()">Check Out</button>
+
+  <!-- Recent checkouts for this user -->
+  <div class="recent-section" id="recent-section" style="display:none;">
+    <h3>Your Recent Checkouts</h3>
+    <div id="recent-list"></div>
+  </div>
+</div>
+
+<!-- Success -->
+<div id="success-screen">
+  <div class="success-check">&#10003;</div>
+  <h2>Checked Out</h2>
+  <div class="details" id="success-details"></div>
+  <button class="btn-new" onclick="resetCheckout()">New Checkout</button>
+  <button class="btn-new" style="background:#27ae60;" onclick="window.location.reload()">Done</button>
+</div>
+
+<script>
+const API = window.location.origin;
+let currentUser = null;
+let currentItem = null;
+let allItems = [];
+let cachedJobs = [];
+
+// ─── PIN Auth ───
+const pinInput = document.getElementById('pin-input');
+pinInput.addEventListener('input', async function() {
+  if (this.value.length === 4) {
+    try {
+      const resp = await fetch(`${API}/api/auth/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: this.value }),
+      });
+      if (!resp.ok) {
+        document.getElementById('pin-error').style.display = 'block';
+        this.value = '';
+        this.focus();
+        return;
+      }
+      currentUser = await resp.json();
+      currentUser.pin = pinInput.value;
+      localStorage.setItem('wp-inv-pin', currentUser.pin);
+      enterApp();
+    } catch (e) {
+      document.getElementById('pin-error').style.display = 'block';
+      this.value = '';
+    }
+  }
+});
+
+// Auto-login from saved PIN
+(async function() {
+  const savedPin = localStorage.getItem('wp-inv-pin');
+  if (savedPin) {
+    try {
+      const resp = await fetch(`${API}/api/auth/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: savedPin }),
+      });
+      if (resp.ok) {
+        currentUser = await resp.json();
+        currentUser.pin = savedPin;
+        enterApp();
+      }
+    } catch (e) {}
+  }
+})();
+
+async function enterApp() {
+  document.getElementById('pin-screen').style.display = 'none';
+  document.getElementById('checkout-screen').style.display = 'block';
+  document.getElementById('user-badge').style.display = 'inline';
+  document.getElementById('user-badge').textContent = currentUser.name;
+
+  // Load items
+  await loadItems();
+
+  // Check for QR param
+  const params = new URLSearchParams(window.location.search);
+  const sku = params.get('sku');
+  if (sku) {
+    const item = allItems.find(i => i.sku === sku);
+    if (item) {
+      selectItem(item);
+      document.getElementById('item-picker-group').style.display = 'none';
+    }
+  }
+
+  // Load cached jobs
+  loadJobs();
+
+  // Load recent checkouts
+  loadRecent();
+}
+
+async function loadItems() {
+  try {
+    const resp = await fetch(`${API}/api/items`, {
+      headers: { 'x-pin': currentUser.pin },
+    });
+    allItems = await resp.json();
+
+    const picker = document.getElementById('item-picker');
+    picker.innerHTML = '<option value="">Choose item...</option>';
+
+    const consumables = allItems.filter(i => i.category === 'consumable');
+    const tools = allItems.filter(i => i.category === 'tool');
+
+    if (consumables.length) {
+      const g1 = document.createElement('optgroup');
+      g1.label = 'Materials';
+      consumables.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.textContent = `${item.name} — $${item.unit_cost.toFixed(2)}/${item.unit_of_measure} (${item.current_quantity} in stock)`;
+        g1.appendChild(opt);
+      });
+      picker.appendChild(g1);
+    }
+
+    if (tools.length) {
+      const g2 = document.createElement('optgroup');
+      g2.label = 'Tools';
+      tools.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.textContent = `${item.name}`;
+        g2.appendChild(opt);
+      });
+      picker.appendChild(g2);
+    }
+  } catch (e) {
+    console.error('Failed to load items:', e);
+  }
+}
+
+document.getElementById('item-picker').addEventListener('change', function() {
+  const item = allItems.find(i => i.id === parseInt(this.value));
+  if (item) selectItem(item);
+});
+
+function selectItem(item) {
+  currentItem = item;
+  const card = document.getElementById('item-card');
+  card.style.display = 'block';
+  document.getElementById('item-name').textContent = item.name;
+  document.getElementById('item-sku-display').textContent = item.sku;
+  document.getElementById('item-cost').textContent = `$${item.unit_cost.toFixed(2)} / ${item.unit_of_measure}`;
+
+  const stockEl = document.getElementById('item-stock');
+  if (item.category === 'consumable') {
+    stockEl.innerHTML = item.current_quantity <= item.reorder_threshold
+      ? `<span class="stock-warning">${item.current_quantity} left</span>`
+      : `<span class="stock-ok">${item.current_quantity} in stock</span>`;
+  } else {
+    stockEl.textContent = 'Tool';
+  }
+
+  document.getElementById('item-location').textContent = item.location ? `Loc: ${item.location}` : '';
+  updateCost();
+}
+
+// ─── Quantity ───
+function adjustQty(delta) {
+  const input = document.getElementById('qty-input');
+  let val = parseFloat(input.value) || 1;
+  val = Math.max(0.5, val + delta);
+  input.value = val;
+  updateCost();
+}
+
+document.getElementById('qty-input').addEventListener('input', updateCost);
+
+function updateCost() {
+  if (!currentItem) return;
+  const qty = parseFloat(document.getElementById('qty-input').value) || 0;
+  const total = currentItem.unit_cost * qty;
+  document.getElementById('cost-total').textContent = `$${total.toFixed(2)}`;
+}
+
+// ─── Job Search ───
+async function loadJobs() {
+  try {
+    const resp = await fetch(`${API}/api/albi/projects`, {
+      headers: { 'x-pin': currentUser.pin },
+    });
+    cachedJobs = await resp.json();
+  } catch (e) {}
+}
+
+const jobInput = document.getElementById('job-input');
+const jobList = document.getElementById('job-list');
+let selectedJobName = '';
+
+jobInput.addEventListener('input', function() {
+  const val = this.value.toLowerCase();
+  selectedJobName = '';
+
+  if (!val || cachedJobs.length === 0) {
+    jobList.classList.remove('active');
+    return;
+  }
+
+  const matches = cachedJobs.filter(j =>
+    j.project_id.includes(val) ||
+    (j.project_name || '').toLowerCase().includes(val) ||
+    (j.address || '').toLowerCase().includes(val) ||
+    (j.customer_name || '').toLowerCase().includes(val)
+  ).slice(0, 10);
+
+  if (matches.length === 0) {
+    jobList.classList.remove('active');
+    return;
+  }
+
+  jobList.innerHTML = matches.map(j => `
+    <div class="job-option" onclick="pickJob('${j.project_id}', '${(j.project_name || '').replace(/'/g, "\\'")}')">
+      <div class="jo-name">#${j.project_id} — ${j.project_name || 'Unnamed'}</div>
+      <div class="jo-addr">${j.address || ''} ${j.customer_name ? '(' + j.customer_name + ')' : ''}</div>
+    </div>
+  `).join('');
+  jobList.classList.add('active');
+});
+
+jobInput.addEventListener('blur', () => {
+  setTimeout(() => jobList.classList.remove('active'), 200);
+});
+
+function pickJob(id, name) {
+  jobInput.value = id;
+  selectedJobName = name;
+  jobList.classList.remove('active');
+}
+
+// ─── Checkout ───
+async function doCheckout() {
+  const errEl = document.getElementById('checkout-error');
+  errEl.style.display = 'none';
+
+  if (!currentItem) {
+    errEl.textContent = 'Select an item first.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const qty = parseFloat(document.getElementById('qty-input').value);
+  const jobNumber = jobInput.value.trim();
+
+  if (!qty || qty <= 0) {
+    errEl.textContent = 'Enter a valid quantity.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  if (!jobNumber) {
+    errEl.textContent = 'Enter a job number.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('btn-checkout');
+  btn.disabled = true;
+  btn.textContent = 'Processing...';
+
+  try {
+    const resp = await fetch(`${API}/api/checkout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-pin': currentUser.pin,
+      },
+      body: JSON.stringify({
+        item_id: currentItem.id,
+        job_number: jobNumber,
+        job_name: selectedJobName,
+        quantity: qty,
+      }),
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      errEl.textContent = data.error || 'Checkout failed';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Check Out';
+      return;
+    }
+
+    // Success!
+    showSuccess(data);
+  } catch (e) {
+    errEl.textContent = 'Network error — try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Check Out';
+  }
+}
+
+function showSuccess(data) {
+  document.getElementById('checkout-screen').style.display = 'none';
+  document.getElementById('success-screen').style.display = 'block';
+
+  const remaining = data.remaining_stock !== null ? `\n${data.remaining_stock} remaining in stock` : '';
+  document.getElementById('success-details').innerHTML =
+    `<strong>${data.quantity || ''} x ${data.item_name}</strong><br>` +
+    `$${(data.total_cost || 0).toFixed(2)} to Job #${jobInput.value}<br>` +
+    `Logged by ${data.employee}` +
+    (remaining ? `<br><em>${remaining}</em>` : '');
+}
+
+function resetCheckout() {
+  document.getElementById('success-screen').style.display = 'none';
+  document.getElementById('checkout-screen').style.display = 'block';
+  document.getElementById('qty-input').value = 1;
+  document.getElementById('cost-total').textContent = '$0.00';
+
+  // If came from QR, keep the item; otherwise reset
+  const params = new URLSearchParams(window.location.search);
+  if (!params.get('sku')) {
+    currentItem = null;
+    document.getElementById('item-card').style.display = 'none';
+    document.getElementById('item-picker').value = '';
+  }
+
+  document.getElementById('btn-checkout').disabled = false;
+  document.getElementById('btn-checkout').textContent = 'Check Out';
+  updateCost();
+}
+
+async function loadRecent() {
+  try {
+    const resp = await fetch(`${API}/api/checkouts/employee/${currentUser.id}?limit=5`, {
+      headers: { 'x-pin': currentUser.pin },
+    });
+    const data = await resp.json();
+    if (data.length === 0) return;
+
+    document.getElementById('recent-section').style.display = 'block';
+    document.getElementById('recent-list').innerHTML = data.map(c => {
+      const date = new Date(c.created_at).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+      });
+      return `<div class="recent-item">
+        <span class="ri-left">${c.quantity}x ${c.item_name} → Job #${c.job_number}</span>
+        <span class="ri-right">${date}</span>
+      </div>`;
+    }).join('');
+  } catch (e) {}
+}
+</script>
+</body>
+</html>

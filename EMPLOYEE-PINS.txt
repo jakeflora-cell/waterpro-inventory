@@ -1,0 +1,23 @@
+WaterPro Inventory System — Employee PINs
+==========================================
+Generated: April 7, 2026
+
+Name                  PIN     Role
+----                  ---     ----
+Jake Flora            8347    admin
+Madison Ingram        5912    supervisor
+Audrey Melton         3748    supervisor
+A.J. Hodges           6201    tech
+AJ Epeards            4583    tech
+Andrew Siglin         7629    tech
+Ayrton Swaby          1956    tech
+Ian Beck              8074    tech
+Jonas Burnette        3415    tech
+Ollie Cano            9263    tech
+Tralinda Nelson       5037    tech
+Devin Smith           4718    tech
+Desmond Mcglaun       6392    tech
+Joshua Lovelace       7841    tech
+
+NOTE: You can change PINs in seed.js before first run,
+or add/update employees through the Admin dashboard.

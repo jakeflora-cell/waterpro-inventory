@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WaterPro Inventory — Admin</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f7fa; color: #1a1a1a;
+    }
+    .header {
+      background: linear-gradient(135deg, #0f3460, #1a5276);
+      color: white; padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header h1 { font-size: 18px; }
+    .header .links a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 13px; margin-left: 16px; }
+    .header .links a:hover { color: white; }
+
+    /* Tabs */
+    .tabs {
+      display: flex; background: white; border-bottom: 2px solid #e0e0e0;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+    }
+    .tab {
+      padding: 12px 20px; font-size: 14px; font-weight: 600; cursor: pointer;
+      border-bottom: 3px solid transparent; white-space: nowrap; color: #666;
+      transition: all 0.2s;
+    }
+    .tab.active { color: #0f3460; border-bottom-color: #0f3460; }
+    .tab:hover { color: #0f3460; }
+
+    .panel { display: none; padding: 20px; max-width: 1000px; margin: 0 auto; }
+    .panel.active { display: block; }
+
+    /* Cards */
+    .card {
+      background: white; border-radius: 10px; padding: 16px; margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .card h3 { font-size: 16px; margin-bottom: 12px; color: #0f3460; }
+
+    /* KPI row */
+    .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .kpi {
+      background: white; border-radius: 10px; padding: 16px; text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .kpi .value { font-size: 28px; font-weight: 700; color: #0f3460; }
+    .kpi .label { font-size: 12px; color: #888; margin-top: 4px; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 10px 8px; border-bottom: 2px solid #e0e0e0; font-weight: 600; color: #555; }
+    td { padding: 8px; border-bottom: 1px solid #f0f0f0; }
+    tr:hover { background: #f8f9fa; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600;
+    }
+    .badge-warn { background: #fef3cd; color: #856404; }
+    .badge-ok { background: #d4edda; color: #155724; }
+    .badge-out { background: #f8d7da; color: #721c24; }
+    .badge-tool { background: #cce5ff; color: #004085; }
+
+    /* Forms */
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #333; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 10px; border: 1px solid #d0d5dd; border-radius: 8px;
+      font-size: 14px; font-family: inherit;
+    }
+    .btn {
+      padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px;
+      font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-primary { background: #0f3460; color: white; }
+    .btn-primary:hover { background: #1a5276; }
+    .btn-success { background: #27ae60; color: white; }
+    .btn-success:hover { background: #219a52; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-outline { background: white; border: 1px solid #d0d5dd; color: #333; }
+
+    .msg { padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; display: none; font-size: 14px; }
+    .msg-ok { background: #d4edda; color: #155724; }
+    .msg-err { background: #f8d7da; color: #721c24; }
+
+    /* PIN overlay */
+    #admin-pin-screen {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 80vh; padding: 20px;
+    }
+    #admin-pin-screen h2 { margin-bottom: 8px; }
+    #admin-pin-screen p { color: #666; margin-bottom: 20px; font-size: 14px; }
+    .pin-input {
+      font-size: 28px; text-align: center; width: 180px; padding: 10px;
+      border: 2px solid #d0d5dd; border-radius: 10px; letter-spacing: 10px;
+      -webkit-text-security: disc;
+    }
+    .pin-input:focus { outline: none; border-color: #0f3460; }
+
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr; }
+      .form-row.three { grid-template-columns: 1fr; }
+      table { font-size: 12px; }
+      td, th { padding: 6px 4px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>WaterPro Inventory Admin</h1>
+  <div class="links">
+    <a href="/checkout.html">Checkout</a>
+    <a href="#" id="link-labels" onclick="window.open('/api/qr/labels/print?pin=' + currentUser?.pin)">Print Labels</a>
+  </div>
+</div>
+
+<div id="admin-pin-screen">
+  <h2>Admin Login</h2>
+  <p>Supervisor or admin PIN required</p>
+  <input type="tel" class="pin-input" id="admin-pin" maxlength="4" inputmode="numeric" autofocus>
+  <div style="color:#e74c3c; margin-top:10px; display:none;" id="admin-pin-error">Access denied. Supervisor or admin PIN required.</div>
+</div>
+
+<div id="admin-app" style="display:none;">
+  <div class="tabs">
+    <div class="tab active" data-tab="dashboard">Dashboard</div>
+    <div class="tab" data-tab="inventory">Inventory</div>
+    <div class="tab" data-tab="restock">Restock</div>
+    <div class="tab" data-tab="tools">Tools Out</div>
+    <div class="tab" data-tab="add-item">Add Item</div>
+    <div class="tab" data-tab="employees">Employees</div>
+    <div class="tab" data-tab="job-costing">Job Costing</div>
+    <div class="tab" data-tab="reports">Reports</div>
+  </div>
+
+  <!-- ═══ DASHBOARD ═══ -->
+  <div class="panel active" id="panel-dashboard">
+    <div class="kpi-row" id="kpi-row"></div>
+
+    <div class="card">
+      <h3>Low Stock Alerts</h3>
+      <table id="low-stock-table">
+        <thead><tr><th>Item</th><th>SKU</th><th>In Stock</th><th>Threshold</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Recent Checkouts</h3>
+      <table id="recent-table">
+        <thead><tr><th>Item</th><th>Qty</th><th>Job</th><th>Employee</th><th>Cost</th><th>When</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ INVENTORY ═══ -->
+  <div class="panel" id="panel-inventory">
+    <div class="card">
+      <h3>All Items</h3>
+      <div style="margin-bottom:12px;">
+        <input type="text" id="inv-search" placeholder="Search items..." style="padding:8px 12px; border:1px solid #d0d5dd; border-radius:8px; width:100%; max-width:300px; font-size:14px;">
+      </div>
+      <table id="inventory-table">
+        <thead><tr><th>Name</th><th>SKU</th><th>Type</th><th>Cost</th><th>Stock</th><th>Location</th><th>QR</th><th>Actions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Edit Item Modal -->
+  <div id="edit-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:200; display:none; align-items:center; justify-content:center;">
+    <div style="background:white; border-radius:12px; padding:24px; width:90%; max-width:500px; max-height:90vh; overflow-y:auto;">
+      <h3 style="margin-bottom:16px; color:#0f3460;">Edit Item</h3>
+      <div class="msg msg-ok" id="edit-msg" style="display:none;"></div>
+      <div class="msg msg-err" id="edit-err" style="display:none;"></div>
+      <input type="hidden" id="edit-id">
+      <div class="form-row">
+        <div class="form-group"><label>SKU</label><input type="text" id="edit-sku"></div>
+        <div class="form-group"><label>Name</label><input type="text" id="edit-name"></div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group"><label>Category</label>
+          <select id="edit-category"><option value="consumable">Consumable</option><option value="tool">Tool</option></select>
+        </div>
+        <div class="form-group"><label>Unit Cost ($)</label><input type="number" id="edit-cost" step="0.01"></div>
+        <div class="form-group"><label>Unit of Measure</label>
+          <select id="edit-uom"><option value="each">Each</option><option value="box">Box</option><option value="roll">Roll</option><option value="gallon">Gallon</option><option value="bag">Bag</option><option value="sheet">Sheet</option><option value="pair">Pair</option><option value="case">Case</option><option value="foot">Foot</option></select>
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group"><label>Current Qty</label><input type="number" id="edit-qty" step="0.5"></div>
+        <div class="form-group"><label>Reorder Threshold</label><input type="number" id="edit-threshold"></div>
+        <div class="form-group"><label>Location</label><input type="text" id="edit-location"></div>
+      </div>
+      <div class="form-group"><label>Notes</label><input type="text" id="edit-notes"></div>
+      <div style="display:flex; gap:8px; margin-top:16px;">
+        <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+        <button class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ RESTOCK ═══ -->
+  <div class="panel" id="panel-restock">
+    <div class="card">
+      <h3>Restock Item</h3>
+      <div class="msg msg-ok" id="restock-msg"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Item</label>
+          <select id="restock-item"></select>
+        </div>
+        <div class="form-group">
+          <label>Quantity</label>
+          <input type="number" id="restock-qty" min="1" value="1">
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label>Purchase Cost ($)</label>
+          <input type="number" id="restock-cost" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Vendor</label>
+          <input type="text" id="restock-vendor" placeholder="Home Depot, etc.">
+        </div>
+        <div class="form-group">
+          <label>Receipt #</label>
+          <input type="text" id="restock-receipt" placeholder="Optional">
+        </div>
+      </div>
+      <button class="btn btn-success" onclick="doRestock()">Record Restock</button>
+    </div>
+
+    <div class="card">
+      <h3>Restock History</h3>
+      <table id="restock-table">
+        <thead><tr><th>Item</th><th>Qty</th><th>Cost</th><th>Vendor</th><th>By</th><th>When</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ TOOLS OUT ═══ -->
+  <div class="panel" id="panel-tools">
+    <div class="card">
+      <h3>Currently Checked Out Tools</h3>
+      <div class="msg msg-ok" id="return-msg"></div>
+      <table id="tools-table">
+        <thead><tr><th>Tool</th><th>Employee</th><th>Job</th><th>Since</th><th>Action</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ ADD ITEM ═══ -->
+  <div class="panel" id="panel-add-item">
+    <div class="card">
+      <h3>Add New Inventory Item</h3>
+      <div class="msg msg-ok" id="add-item-msg"></div>
+      <div class="msg msg-err" id="add-item-err"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>SKU *</label>
+          <input type="text" id="new-sku" placeholder="PLY-SHEET-4X8" style="text-transform:uppercase;">
+        </div>
+        <div class="form-group">
+          <label>Name *</label>
+          <input type="text" id="new-name" placeholder="Plastic Sheeting 4x8">
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label>Category</label>
+          <select id="new-category">
+            <option value="consumable">Consumable (materials)</option>
+            <option value="tool">Tool (comes back)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Unit Cost ($)</label>
+          <input type="number" id="new-cost" step="0.01" value="0">
+        </div>
+        <div class="form-group">
+          <label>Unit of Measure</label>
+          <select id="new-uom">
+            <option value="each">Each</option>
+            <option value="box">Box</option>
+            <option value="roll">Roll</option>
+            <option value="gallon">Gallon</option>
+            <option value="bag">Bag</option>
+            <option value="sheet">Sheet</option>
+            <option value="pair">Pair</option>
+            <option value="case">Case</option>
+            <option value="foot">Foot</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label>Starting Quantity</label>
+          <input type="number" id="new-qty" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>Reorder Threshold</label>
+          <input type="number" id="new-threshold" value="5" min="0">
+        </div>
+        <div class="form-group">
+          <label>Location (shelf/bin)</label>
+          <input type="text" id="new-location" placeholder="Shelf A-3">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <input type="text" id="new-notes" placeholder="Optional notes">
+      </div>
+      <button class="btn btn-primary" onclick="addItem()">Add Item</button>
+    </div>
+  </div>
+
+  <!-- ═══ EMPLOYEES ═══ -->
+  <div class="panel" id="panel-employees">
+    <div class="card">
+      <h3>Add Employee</h3>
+      <div class="msg msg-ok" id="emp-msg"></div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="emp-name" placeholder="First name">
+        </div>
+        <div class="form-group">
+          <label>PIN (4 digits)</label>
+          <input type="text" id="emp-pin" maxlength="4" inputmode="numeric" placeholder="1234">
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select id="emp-role">
+            <option value="tech">Technician</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addEmployee()">Add Employee</button>
+    </div>
+    <div class="card">
+      <h3>Current Employees</h3>
+      <table id="emp-table">
+        <thead><tr><th>Name</th><th>Role</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ JOB COSTING ═══ -->
+  <div class="panel" id="panel-job-costing">
+    <div class="card">
+      <h3>Job Cost Lookup</h3>
+      <p style="font-size:13px; color:#555; margin-bottom:12px;">Enter an Albi project ID to see the full cost breakdown: labor (from Albi timesheets) + materials (from inventory checkouts) + equipment.</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Albi Project ID</label>
+          <input type="text" id="jc-project-id" placeholder="e.g. 1454913" inputmode="numeric">
+        </div>
+        <div class="form-group" style="display:flex; align-items:flex-end;">
+          <button class="btn btn-primary" onclick="loadJobCost()">Pull Job Cost</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="jc-result" style="display:none;">
+      <div class="card">
+        <h3 id="jc-title">Job Cost Summary</h3>
+        <div class="kpi-row" id="jc-kpis"></div>
+      </div>
+
+      <div class="card">
+        <h3>Labor (from Albi)</h3>
+        <table id="jc-labor-table">
+          <thead><tr><th>Employee</th><th>Description</th><th>Date</th><th>Cost</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>Materials (from Inventory)</h3>
+        <table id="jc-materials-table">
+          <thead><tr><th>Item</th><th>Qty</th><th>Unit Cost</th><th>Total</th><th>Employee</th><th>Date</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>Equipment</h3>
+        <table id="jc-equip-table">
+          <thead><tr><th>Equipment</th><th>Details</th><th>Placed</th><th>Removed</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <h3>All Jobs — Cost Summary</h3>
+      <p style="font-size:13px; color:#555; margin-bottom:12px;">Shows all jobs that have material checkouts, with labor pulled from Albi. May take a few seconds for many jobs.</p>
+      <div class="form-row">
+        <div class="form-group"><label>From</label><input type="date" id="jc-start"></div>
+        <div class="form-group"><label>To</label><input type="date" id="jc-end"></div>
+      </div>
+      <button class="btn btn-primary" onclick="loadJobCostSummary()">Run Summary</button>
+      <span id="jc-summary-status" style="margin-left:12px; font-size:13px; color:#555;"></span>
+      <table id="jc-summary-table" style="margin-top:12px;">
+        <thead><tr><th>Job #</th><th>Job Name</th><th>Labor</th><th>Materials</th><th>Equipment</th><th>Total</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ REPORTS ═══ -->
+  <div class="panel" id="panel-reports">
+    <div class="card">
+      <div class="form-row" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label>From</label>
+          <input type="date" id="report-start">
+        </div>
+        <div class="form-group">
+          <label>To</label>
+          <input type="date" id="report-end">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="loadReports()">Run Reports</button>
+    </div>
+
+    <div class="card">
+      <h3>Cost by Job</h3>
+      <table id="rpt-job-table">
+        <thead><tr><th>Job #</th><th>Job Name</th><th>Checkouts</th><th>Total Cost</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Top Items</h3>
+      <table id="rpt-items-table">
+        <thead><tr><th>Item</th><th>SKU</th><th>Qty Used</th><th>Total Cost</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Cost by Employee</h3>
+      <table id="rpt-emp-table">
+        <thead><tr><th>Employee</th><th>Checkouts</th><th>Total Cost</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Albi Sync</h3>
+      <p style="font-size:14px; color:#555; margin-bottom:10px;">Pull active projects from Albi so employees can search jobs during checkout.</p>
+      <button class="btn btn-primary" onclick="syncAlbi()">Sync Projects from Albi</button>
+      <span id="sync-status" style="margin-left:12px; font-size:13px; color:#555;"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+let currentUser = null;
+
+// ─── Auth ───
+const adminPin = document.getElementById('admin-pin');
+adminPin.addEventListener('input', async function() {
+  if (this.value.length === 4) {
+    try {
+      const resp = await fetch(`${API}/api/auth/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: this.value }),
+      });
+      if (!resp.ok) throw new Error('bad pin');
+      const user = await resp.json();
+      if (user.role !== 'admin' && user.role !== 'supervisor') {
+        document.getElementById('admin-pin-error').style.display = 'block';
+        this.value = '';
+        return;
+      }
+      currentUser = { ...user, pin: this.value };
+      document.getElementById('admin-pin-screen').style.display = 'none';
+      document.getElementById('admin-app').style.display = 'block';
+      initDashboard();
+    } catch (e) {
+      document.getElementById('admin-pin-error').style.display = 'block';
+      this.value = '';
+    }
+  }
+});
+
+// ─── Tabs ───
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById('panel-' + this.dataset.tab).classList.add('active');
+  });
+});
+
+function apiHeaders() {
+  return { 'Content-Type': 'application/json', 'x-pin': currentUser.pin };
+}
+
+// ─── Dashboard ───
+async function initDashboard() {
+  loadDashboard();
+  loadInventory();
+  loadRestockForm();
+  loadTools();
+  loadEmployees();
+  setReportDates();
+}
+
+async function loadDashboard() {
+  // Health
+  const health = await (await fetch(`${API}/api/health`)).json();
+
+  // Low stock
+  const lowStock = await (await fetch(`${API}/api/items-low-stock`, { headers: apiHeaders() })).json();
+
+  // Recent
+  const recent = await (await fetch(`${API}/api/checkouts/recent?limit=20`, { headers: apiHeaders() })).json();
+
+  // Tools out
+  const tools = await (await fetch(`${API}/api/tools/checked-out`, { headers: apiHeaders() })).json();
+
+  // KPIs
+  document.getElementById('kpi-row').innerHTML = `
+    <div class="kpi"><div class="value">${health.items}</div><div class="label">Total Items</div></div>
+    <div class="kpi"><div class="value" style="color:${lowStock.length > 0 ? '#e67e22' : '#27ae60'}">${lowStock.length}</div><div class="label">Low Stock</div></div>
+    <div class="kpi"><div class="value">${tools.length}</div><div class="label">Tools Out</div></div>
+    <div class="kpi"><div class="value">${health.albiConnected ? 'Yes' : 'No'}</div><div class="label">Albi Connected</div></div>
+  `;
+
+  // Low stock table
+  const lsBody = document.querySelector('#low-stock-table tbody');
+  lsBody.innerHTML = lowStock.length === 0
+    ? '<tr><td colspan="4" style="text-align:center;color:#888;">All items stocked</td></tr>'
+    : lowStock.map(i => `<tr>
+        <td><strong>${i.name}</strong></td>
+        <td>${i.sku}</td>
+        <td><span class="badge badge-warn">${i.current_quantity} ${i.unit_of_measure}</span></td>
+        <td>${i.reorder_threshold}</td>
+      </tr>`).join('');
+
+  // Recent table
+  const rBody = document.querySelector('#recent-table tbody');
+  rBody.innerHTML = recent.length === 0
+    ? '<tr><td colspan="6" style="text-align:center;color:#888;">No checkouts yet</td></tr>'
+    : recent.map(c => {
+        const when = new Date(c.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+        return `<tr>
+          <td>${c.item_name}</td>
+          <td>${c.quantity} ${c.unit_of_measure}</td>
+          <td>#${c.job_number}</td>
+          <td>${c.employee_name}</td>
+          <td>$${c.total_cost.toFixed(2)}</td>
+          <td>${when}</td>
+        </tr>`;
+      }).join('');
+}
+
+// ─── Inventory ───
+let allItems = [];
+async function loadInventory() {
+  const resp = await fetch(`${API}/api/items`, { headers: apiHeaders() });
+  allItems = await resp.json();
+  renderInventory(allItems);
+}
+
+function renderInventory(items) {
+  const body = document.querySelector('#inventory-table tbody');
+  body.innerHTML = items.map(i => `<tr>
+    <td><strong>${i.name}</strong></td>
+    <td>${i.sku}</td>
+    <td><span class="badge ${i.category === 'tool' ? 'badge-tool' : 'badge-ok'}">${i.category}</span></td>
+    <td>$${i.unit_cost.toFixed(2)}/${i.unit_of_measure}</td>
+    <td>${i.category === 'consumable'
+      ? (i.current_quantity <= i.reorder_threshold
+        ? `<span class="badge badge-warn">${i.current_quantity}</span>`
+        : `<span class="badge badge-ok">${i.current_quantity}</span>`)
+      : '—'}</td>
+    <td>${i.location || '—'}</td>
+    <td><img src="/api/qr/${encodeURIComponent(i.sku)}?pin=${currentUser.pin}" width="40" height="40" style="cursor:pointer;" onclick="window.open('/api/qr/${encodeURIComponent(i.sku)}?format=svg&pin=${currentUser.pin}')" title="Click for full-size QR"></td>
+    <td>
+      <button class="btn btn-sm btn-primary" onclick="openEditModal(${i.id})">Edit</button>
+      <button class="btn btn-sm" style="background:#e74c3c;color:white;margin-left:4px;" onclick="deleteItem(${i.id}, '${i.name.replace(/'/g,"\\'")}')">Delete</button>
+    </td>
+  </tr>`).join('');
+}
+
+// ─── Edit Modal ───
+function openEditModal(itemId) {
+  const item = allItems.find(i => i.id === itemId);
+  if (!item) return;
+  document.getElementById('edit-id').value = item.id;
+  document.getElementById('edit-sku').value = item.sku;
+  document.getElementById('edit-name').value = item.name;
+  document.getElementById('edit-category').value = item.category;
+  document.getElementById('edit-cost').value = item.unit_cost;
+  document.getElementById('edit-uom').value = item.unit_of_measure;
+  document.getElementById('edit-qty').value = item.current_quantity;
+  document.getElementById('edit-threshold').value = item.reorder_threshold;
+  document.getElementById('edit-location').value = item.location || '';
+  document.getElementById('edit-notes').value = item.notes || '';
+  document.getElementById('edit-msg').style.display = 'none';
+  document.getElementById('edit-err').style.display = 'none';
+  const modal = document.getElementById('edit-modal');
+  modal.style.display = 'flex';
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').style.display = 'none';
+}
+
+// Close modal on background click
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeEditModal();
+});
+
+async function saveEdit() {
+  const id = document.getElementById('edit-id').value;
+  const msg = document.getElementById('edit-msg');
+  const err = document.getElementById('edit-err');
+  msg.style.display = 'none';
+  err.style.display = 'none';
+
+  try {
+    const resp = await fetch(`${API}/api/items/${id}`, {
+      method: 'PUT',
+      headers: apiHeaders(),
+      body: JSON.stringify({
+        sku: document.getElementById('edit-sku').value.toUpperCase().trim(),
+        name: document.getElementById('edit-name').value.trim(),
+        category: document.getElementById('edit-category').value,
+        unit_cost: parseFloat(document.getElementById('edit-cost').value) || 0,
+        unit_of_measure: document.getElementById('edit-uom').value,
+        current_quantity: parseFloat(document.getElementById('edit-qty').value) || 0,
+        reorder_threshold: parseFloat(document.getElementById('edit-threshold').value) || 5,
+        location: document.getElementById('edit-location').value.trim(),
+        notes: document.getElementById('edit-notes').value.trim(),
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error);
+    msg.textContent = 'Item updated!';
+    msg.style.display = 'block';
+    setTimeout(() => { closeEditModal(); loadInventory(); loadDashboard(); loadRestockForm(); }, 800);
+  } catch (e) {
+    err.textContent = e.message;
+    err.style.display = 'block';
+  }
+}
+
+async function deleteItem(id, name) {
+  if (!confirm(`Delete "${name}"?\n\nThis hides the item from inventory. Existing checkout records are kept.`)) return;
+  try {
+    const resp = await fetch(`${API}/api/items/${id}`, {
+      method: 'DELETE',
+      headers: apiHeaders(),
+    });
+    if (!resp.ok) throw new Error('Delete failed');
+    loadInventory();
+    loadDashboard();
+    loadRestockForm();
+  } catch (e) {
+    alert('Delete failed: ' + e.message);
+  }
+}
+
+document.getElementById('inv-search').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  renderInventory(allItems.filter(i =>
+    i.name.toLowerCase().includes(q) || i.sku.toLowerCase().includes(q) || (i.location||'').toLowerCase().includes(q)
+  ));
+});
+
+// ─── Restock ───
+async function loadRestockForm() {
+  const items = await (await fetch(`${API}/api/items`, { headers: apiHeaders() })).json();
+  const sel = document.getElementById('restock-item');
+  sel.innerHTML = items.filter(i => i.category === 'consumable').map(i =>
+    `<option value="${i.id}">${i.name} (${i.current_quantity} in stock)</option>`
+  ).join('');
+
+  const restocks = await (await fetch(`${API}/api/restocks?limit=20`, { headers: apiHeaders() })).json();
+  const body = document.querySelector('#restock-table tbody');
+  body.innerHTML = restocks.length === 0
+    ? '<tr><td colspan="6" style="text-align:center;color:#888;">No restocks yet</td></tr>'
+    : restocks.map(r => {
+        const when = new Date(r.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+        return `<tr>
+          <td>${r.item_name}</td>
+          <td>${r.quantity_added}</td>
+          <td>${r.purchase_cost ? '$' + r.purchase_cost.toFixed(2) : '—'}</td>
+          <td>${r.vendor || '—'}</td>
+          <td>${r.employee_name || '—'}</td>
+          <td>${when}</td>
+        </tr>`;
+      }).join('');
+}
+
+async function doRestock() {
+  const msg = document.getElementById('restock-msg');
+  try {
+    const resp = await fetch(`${API}/api/restock`, {
+      method: 'POST',
+      headers: apiHeaders(),
+      body: JSON.stringify({
+        item_id: parseInt(document.getElementById('restock-item').value),
+        quantity_added: parseFloat(document.getElementById('restock-qty').value),
+        purchase_cost: parseFloat(document.getElementById('restock-cost').value) || 0,
+        vendor: document.getElementById('restock-vendor').value,
+        receipt_ref: document.getElementById('restock-receipt').value,
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error);
+    msg.textContent = `Restocked! New quantity: ${data.new_quantity}`;
+    msg.style.display = 'block';
+    loadRestockForm();
+    loadDashboard();
+    loadInventory();
+  } catch (e) {
+    msg.className = 'msg msg-err';
+    msg.textContent = e.message;
+    msg.style.display = 'block';
+  }
+}
+
+// ─── Tools ───
+async function loadTools() {
+  const tools = await (await fetch(`${API}/api/tools/checked-out`, { headers: apiHeaders() })).json();
+  const body = document.querySelector('#tools-table tbody');
+  body.innerHTML = tools.length === 0
+    ? '<tr><td colspan="5" style="text-align:center;color:#888;">No tools checked out</td></tr>'
+    : tools.map(t => {
+        const since = new Date(t.checkout_date).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+        return `<tr>
+          <td><strong>${t.item_name}</strong> <span style="color:#888;">${t.sku}</span></td>
+          <td>${t.employee_name}</td>
+          <td>#${t.job_number}</td>
+          <td>${since}</td>
+          <td><button class="btn btn-sm btn-success" onclick="returnTool(${t.id})">Return</button></td>
+        </tr>`;
+      }).join('');
+}
+
+async function returnTool(checkoutId) {
+  try {
+    const resp = await fetch(`${API}/api/tools/return/${checkoutId}`, {
+      method: 'POST', headers: apiHeaders(),
+    });
+    if (!resp.ok) throw new Error('Return failed');
+    const msg = document.getElementById('return-msg');
+    msg.textContent = 'Tool returned!';
+    msg.style.display = 'block';
+    setTimeout(() => msg.style.display = 'none', 3000);
+    loadTools();
+    loadDashboard();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+// ─── Add Item ───
+async function addItem() {
+  const msg = document.getElementById('add-item-msg');
+  const err = document.getElementById('add-item-err');
+  msg.style.display = 'none';
+  err.style.display = 'none';
+
+  try {
+    const resp = await fetch(`${API}/api/items`, {
+      method: 'POST',
+      headers: apiHeaders(),
+      body: JSON.stringify({
+        sku: document.getElementById('new-sku').value.toUpperCase().trim(),
+        name: document.getElementById('new-name').value.trim(),
+        category: document.getElementById('new-category').value,
+        unit_cost: parseFloat(document.getElementById('new-cost').value) || 0,
+        unit_of_measure: document.getElementById('new-uom').value,
+        current_quantity: parseFloat(document.getElementById('new-qty').value) || 0,
+        reorder_threshold: parseFloat(document.getElementById('new-threshold').value) || 5,
+        location: document.getElementById('new-location').value.trim(),
+        notes: document.getElementById('new-notes').value.trim(),
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error);
+    msg.textContent = `Item added! ID: ${data.id}`;
+    msg.style.display = 'block';
+    // Clear form
+    document.getElementById('new-sku').value = '';
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-cost').value = '0';
+    document.getElementById('new-qty').value = '0';
+    document.getElementById('new-location').value = '';
+    document.getElementById('new-notes').value = '';
+    loadInventory();
+    loadRestockForm();
+  } catch (e) {
+    err.textContent = e.message;
+    err.style.display = 'block';
+  }
+}
+
+// ─── Employees ───
+async function loadEmployees() {
+  const emps = await (await fetch(`${API}/api/employees`, { headers: apiHeaders() })).json();
+  const body = document.querySelector('#emp-table tbody');
+  body.innerHTML = emps.map(e =>
+    `<tr><td>${e.name}</td><td><span class="badge ${e.role === 'admin' ? 'badge-out' : e.role === 'supervisor' ? 'badge-warn' : 'badge-ok'}">${e.role}</span></td></tr>`
+  ).join('');
+}
+
+async function addEmployee() {
+  const msg = document.getElementById('emp-msg');
+  try {
+    const resp = await fetch(`${API}/api/employees`, {
+      method: 'POST',
+      headers: apiHeaders(),
+      body: JSON.stringify({
+        name: document.getElementById('emp-name').value.trim(),
+        pin: document.getElementById('emp-pin').value.trim(),
+        role: document.getElementById('emp-role').value,
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error);
+    msg.textContent = `Employee added!`;
+    msg.style.display = 'block';
+    document.getElementById('emp-name').value = '';
+    document.getElementById('emp-pin').value = '';
+    loadEmployees();
+  } catch (e) {
+    msg.className = 'msg msg-err';
+    msg.textContent = e.message;
+    msg.style.display = 'block';
+  }
+}
+
+// ─── Reports ───
+function setReportDates() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  document.getElementById('report-start').value = start.toISOString().split('T')[0];
+  document.getElementById('report-end').value = now.toISOString().split('T')[0];
+}
+
+async function loadReports() {
+  const start = document.getElementById('report-start').value;
+  const end = document.getElementById('report-end').value;
+  const qs = `start=${start}&end=${end}`;
+
+  const [jobs, items, emps] = await Promise.all([
+    (await fetch(`${API}/api/reports/cost-by-job?${qs}`, { headers: apiHeaders() })).json(),
+    (await fetch(`${API}/api/reports/top-items?${qs}`, { headers: apiHeaders() })).json(),
+    (await fetch(`${API}/api/reports/cost-by-employee?${qs}`, { headers: apiHeaders() })).json(),
+  ]);
+
+  document.querySelector('#rpt-job-table tbody').innerHTML = jobs.length === 0
+    ? '<tr><td colspan="4" style="color:#888;text-align:center;">No data</td></tr>'
+    : jobs.map(j => `<tr><td>#${j.job_number}</td><td>${j.job_name || '—'}</td><td>${j.checkout_count}</td><td><strong>$${j.total_materials_cost.toFixed(2)}</strong></td></tr>`).join('');
+
+  document.querySelector('#rpt-items-table tbody').innerHTML = items.length === 0
+    ? '<tr><td colspan="4" style="color:#888;text-align:center;">No data</td></tr>'
+    : items.map(i => `<tr><td>${i.name}</td><td>${i.sku}</td><td>${i.total_qty}</td><td><strong>$${i.total_cost.toFixed(2)}</strong></td></tr>`).join('');
+
+  document.querySelector('#rpt-emp-table tbody').innerHTML = emps.length === 0
+    ? '<tr><td colspan="3" style="color:#888;text-align:center;">No data</td></tr>'
+    : emps.map(e => `<tr><td>${e.employee_name}</td><td>${e.count}</td><td><strong>$${e.total_cost.toFixed(2)}</strong></td></tr>`).join('');
+}
+
+// ─── Albi Sync ───
+async function syncAlbi() {
+  const status = document.getElementById('sync-status');
+  status.textContent = 'Syncing...';
+  try {
+    const resp = await fetch(`${API}/api/albi/sync-projects`, {
+      method: 'POST', headers: apiHeaders(),
+    });
+    const data = await resp.json();
+    status.textContent = data.message;
+  } catch (e) {
+    status.textContent = 'Sync failed: ' + e.message;
+  }
+}
+
+// ─── Job Costing ───
+function initJobCosting() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  document.getElementById('jc-start').value = start.toISOString().split('T')[0];
+  document.getElementById('jc-end').value = now.toISOString().split('T')[0];
+}
+
+async function loadJobCost() {
+  const projectId = document.getElementById('jc-project-id').value.trim();
+  if (!projectId) return;
+
+  document.getElementById('jc-result').style.display = 'none';
+
+  try {
+    const resp = await fetch(`${API}/api/reports/job-cost/${projectId}`, { headers: apiHeaders() });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error);
+
+    const s = data.summary;
+    document.getElementById('jc-title').textContent =
+      data.projectName ? `${data.projectName} (#${projectId})` : `Job #${projectId}`;
+
+    document.getElementById('jc-kpis').innerHTML = `
+      <div class="kpi"><div class="value">$${s.laborCost.toFixed(2)}</div><div class="label">Labor</div></div>
+      <div class="kpi"><div class="value">$${s.materialCost.toFixed(2)}</div><div class="label">Materials</div></div>
+      <div class="kpi"><div class="value">$${s.equipmentCost.toFixed(2)}</div><div class="label">Equipment</div></div>
+      <div class="kpi"><div class="value" style="color:#0f3460;">$${s.totalJobCost.toFixed(2)}</div><div class="label">Total Job Cost</div></div>
+    `;
+
+    // Labor table
+    const lBody = document.querySelector('#jc-labor-table tbody');
+    lBody.innerHTML = data.labor.length === 0
+      ? '<tr><td colspan="4" style="color:#888;text-align:center;">No labor expenses in Albi</td></tr>'
+      : data.labor.map(l => {
+          const d = l.date ? new Date(l.date).toLocaleDateString('en-US', {month:'short',day:'numeric'}) : '—';
+          return `<tr><td>${l.payee || '—'}</td><td>${l.memo || '—'}</td><td>${d}</td><td><strong>$${(l.total||0).toFixed(2)}</strong></td></tr>`;
+        }).join('');
+
+    // Materials table
+    const mBody = document.querySelector('#jc-materials-table tbody');
+    mBody.innerHTML = data.materials.length === 0
+      ? '<tr><td colspan="6" style="color:#888;text-align:center;">No material checkouts for this job</td></tr>'
+      : data.materials.map(m => {
+          const d = m.date ? new Date(m.date).toLocaleDateString('en-US', {month:'short',day:'numeric'}) : '—';
+          return `<tr><td>${m.item} <span style="color:#888;">${m.sku}</span></td><td>${m.qty}</td><td>$${m.unitCost.toFixed(2)}</td><td><strong>$${m.total.toFixed(2)}</strong></td><td>${m.employee}</td><td>${d}</td></tr>`;
+        }).join('');
+
+    // Equipment table
+    const eBody = document.querySelector('#jc-equip-table tbody');
+    eBody.innerHTML = data.equipment.length === 0
+      ? '<tr><td colspan="4" style="color:#888;text-align:center;">No equipment data</td></tr>'
+      : data.equipment.map(e => {
+          const placed = e.placed ? new Date(e.placed).toLocaleDateString('en-US', {month:'short',day:'numeric'}) : '—';
+          const removed = e.removed ? new Date(e.removed).toLocaleDateString('en-US', {month:'short',day:'numeric'}) : 'Still on site';
+          return `<tr><td>${e.name || '—'}</td><td>${e.memo || '—'}</td><td>${placed}</td><td>${removed}</td></tr>`;
+        }).join('');
+
+    document.getElementById('jc-result').style.display = 'block';
+  } catch (e) {
+    alert('Failed to load job cost: ' + e.message);
+  }
+}
+
+async function loadJobCostSummary() {
+  const start = document.getElementById('jc-start').value;
+  const end = document.getElementById('jc-end').value;
+  const status = document.getElementById('jc-summary-status');
+  status.textContent = 'Loading... (pulling labor from Albi for each job)';
+
+  try {
+    const resp = await fetch(`${API}/api/reports/job-cost-summary?start=${start}&end=${end}`, { headers: apiHeaders() });
+    const data = await resp.json();
+    status.textContent = `${data.length} jobs loaded`;
+
+    const body = document.querySelector('#jc-summary-table tbody');
+    body.innerHTML = data.length === 0
+      ? '<tr><td colspan="7" style="color:#888;text-align:center;">No jobs with material checkouts in this range</td></tr>'
+      : data.map(j => `<tr>
+          <td>#${j.jobNumber}</td>
+          <td>${j.jobName || '—'}</td>
+          <td>$${j.laborCost.toFixed(2)}</td>
+          <td>$${j.materialCost.toFixed(2)}</td>
+          <td>$${j.equipmentCost.toFixed(2)}</td>
+          <td><strong>$${j.totalCost.toFixed(2)}</strong></td>
+          <td><button class="btn btn-sm btn-outline" onclick="document.getElementById('jc-project-id').value='${j.jobNumber}';loadJobCost();">Detail</button></td>
+        </tr>`).join('');
+  } catch (e) {
+    status.textContent = 'Failed: ' + e.message;
+  }
+}
+
+// Init job costing dates when tab is first clicked
+document.querySelector('[data-tab="job-costing"]').addEventListener('click', function() {
+  if (!document.getElementById('jc-start').value) initJobCosting();
+});
+</script>
+</body>
+</html>
